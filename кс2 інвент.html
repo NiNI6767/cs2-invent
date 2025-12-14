@@ -1,0 +1,1056 @@
+<!doctype html>
+
+<html lang="uk">
+    <head>
+        <meta charset="UTF-8" />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>CS2 Inventory Mockup (Loadout)</title>
+
+        <style>
+            /* Стилі з попередньої версії */
+
+            body {
+                font-family: Arial, sans-serif;
+
+                background-color: #0d121c;
+
+                color: #e0e0e0;
+
+                margin: 0;
+
+                padding: 0;
+
+                display: flex;
+
+                justify-content: center;
+
+                min-height: 100vh;
+            }
+
+            .inventory-layout {
+                display: flex;
+
+                width: 95%;
+
+                max-width: 1600px;
+            }
+
+            .inventory-container {
+                flex-grow: 1; /* Інвентар займає весь доступний простір */
+
+                padding: 20px 20px 20px 0;
+
+                box-sizing: border-box;
+
+                transition: margin-right 0.3s ease; /* Для руху, коли відкривається Loadout */
+            }
+
+            /* СТИЛІ LOADOUT ПАНЕЛІ */
+
+            .loadout-panel {
+                width: 300px; /* Фіксована ширина панелі спорядження */
+
+                background-color: #1a222c; /* Трохи світліший фон для бічної панелі */
+
+                border-left: 1px solid #2f3a47;
+
+                padding: 20px;
+
+                box-sizing: border-box;
+
+                transform: translateX(300px); /* Приховуємо за межами екрана */
+
+                position: fixed;
+
+                right: 0;
+
+                top: 0;
+
+                bottom: 0;
+
+                transition: transform 0.3s ease;
+
+                z-index: 150;
+            }
+
+            .loadout-panel.open {
+                transform: translateX(0); /* Показуємо панель */
+            }
+
+            /* Зміна відступу інвентарю, коли панель відкрита */
+
+            .inventory-container.loadout-open {
+                /* Ми прибрали це, оскільки панель Loadout тепер fixed. Це простіше. */
+            }
+
+            .loadout-header {
+                font-size: 20px;
+
+                font-weight: bold;
+
+                color: #ffffff;
+
+                margin-bottom: 20px;
+
+                display: flex;
+
+                justify-content: space-between;
+
+                align-items: center;
+            }
+
+            .loadout-close {
+                cursor: pointer;
+
+                font-size: 24px;
+
+                color: #ccc;
+            }
+
+            .loadout-slot-group {
+                margin-bottom: 15px;
+
+                padding-bottom: 10px;
+
+                border-bottom: 1px solid #2f3a47;
+            }
+
+            .loadout-slot-title {
+                font-size: 14px;
+
+                color: #a0a8b1;
+
+                margin-bottom: 8px;
+
+                text-transform: uppercase;
+            }
+
+            .loadout-slot {
+                height: 60px;
+
+                background-color: #2f3a47; /* Сірий фон для порожнього слота */
+
+                border: 2px dashed #4c5d73;
+
+                border-radius: 4px;
+
+                display: flex;
+
+                align-items: center;
+
+                padding: 5px;
+
+                margin-bottom: 8px;
+
+                cursor: pointer;
+
+                transition: background-color 0.1s;
+
+                position: relative;
+
+                overflow: hidden;
+            }
+
+            .loadout-slot:hover {
+                background-color: #3e4d5e;
+            }
+
+            .slot-item-info {
+                display: flex;
+
+                flex-direction: column;
+
+                margin-left: 10px;
+            }
+
+            .slot-item-name {
+                font-weight: 600;
+
+                white-space: nowrap;
+
+                overflow: hidden;
+
+                text-overflow: ellipsis;
+            }
+
+            .slot-item-finish {
+                font-size: 11px;
+
+                color: #a0a8b1;
+            }
+
+            .slot-placeholder {
+                color: #a0a8b1;
+
+                font-style: italic;
+
+                margin: auto;
+            }
+
+            /* Стилі для вибраної картки в інвентарі */
+
+            .item-card.selected-for-loadout {
+                border: 3px solid #577cf4; /* Яскраво-синя рамка */
+
+                box-shadow: 0 0 10px rgba(87, 124, 244, 0.8);
+            }
+
+            /* --- ІНШІ СТИЛІ З МИНУЛОГО КРОКУ --- */
+
+            .inventory-header {
+                display: flex;
+
+                justify-content: space-between;
+
+                align-items: center;
+
+                padding-bottom: 15px;
+
+                border-bottom: 1px solid #2f3a47;
+
+                margin-bottom: 20px;
+            }
+
+            .header-title {
+                font-size: 24px;
+
+                font-weight: bold;
+
+                color: #ffffff;
+
+                letter-spacing: 1px;
+            }
+
+            .header-controls {
+                display: flex;
+
+                gap: 10px;
+
+                align-items: center;
+            }
+
+            .control-button {
+                background-color: #2f3a47;
+
+                color: #e0e0e0;
+
+                border: none;
+
+                padding: 8px 15px;
+
+                cursor: pointer;
+
+                font-weight: 600;
+
+                border-radius: 2px;
+
+                transition: background-color 0.2s;
+
+                text-transform: uppercase;
+            }
+
+            .control-button:hover {
+                background-color: #3e4d5e;
+            }
+
+            .search-box input {
+                background-color: #1e2632;
+
+                color: #e0e0e0;
+
+                border: 1px solid #2f3a47;
+
+                padding: 8px 10px;
+
+                border-radius: 2px;
+
+                width: 200px;
+            }
+
+            .dropdown {
+                position: relative;
+
+                display: inline-block;
+            }
+
+            .dropdown-button {
+                background-color: #1e2632;
+
+                color: #ffffff;
+
+                border: 1px solid #2f3a47;
+
+                padding: 8px 15px;
+
+                cursor: pointer;
+
+                font-weight: 600;
+
+                border-radius: 2px;
+
+                text-transform: uppercase;
+
+                letter-spacing: 0.5px;
+            }
+
+            .dropdown-content {
+                display: none;
+
+                position: absolute;
+
+                background-color: #1e2632;
+
+                min-width: 180px;
+
+                box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.5);
+
+                z-index: 100;
+
+                top: 100%;
+
+                left: 0;
+
+                border: 1px solid #2f3a47;
+
+                border-top: none;
+
+                border-radius: 0 0 4px 4px;
+            }
+
+            .dropdown-content a {
+                color: #e0e0e0;
+
+                padding: 12px 16px;
+
+                text-decoration: none;
+
+                display: block;
+
+                font-size: 14px;
+
+                transition: background-color 0.2s;
+            }
+
+            .dropdown-content a:hover {
+                background-color: #2f3a47;
+            }
+
+            .dropdown-content.show {
+                display: block;
+            }
+
+            .filter-bar {
+                padding-bottom: 10px;
+
+                margin-bottom: 20px;
+            }
+
+            .filter-active {
+                font-size: 14px;
+
+                color: #ffffff;
+
+                border-bottom: 2px solid #577cf4;
+
+                padding-bottom: 5px;
+
+                font-weight: bold;
+            }
+
+            .inventory-grid {
+                display: grid;
+
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+
+                gap: 15px;
+            }
+
+            .item-card {
+                background-color: #1e2632;
+
+                border-radius: 4px;
+
+                padding: 10px;
+
+                display: flex;
+
+                flex-direction: column;
+
+                position: relative;
+
+                overflow: hidden;
+
+                cursor: pointer;
+
+                transition:
+                    transform 0.1s,
+                    box-shadow 0.1s;
+            }
+
+            .item-card.hidden {
+                display: none;
+            }
+
+            .item-card:hover {
+                transform: translateY(-2px);
+
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            }
+
+            .item-image-placeholder {
+                height: 100px;
+
+                background-color: #2f3a47;
+
+                display: flex;
+
+                justify-content: center;
+
+                align-items: center;
+
+                font-size: 40px;
+
+                margin-bottom: 10px;
+
+                border-radius: 2px;
+            }
+
+            /* Кольори рідкості для слотів */
+
+            .slot-rarity-red {
+                border-left: 3px solid #e94b4b;
+            }
+
+            .slot-rarity-pink {
+                border-left: 3px solid #8847ff;
+            }
+
+            .item-rarity {
+                position: absolute;
+
+                bottom: 0;
+
+                left: 0;
+
+                height: 3px;
+
+                width: 100%;
+            }
+
+            .item-rarity-red {
+                background-color: #e94b4b;
+            }
+
+            .item-rarity-pink {
+                background-color: #8847ff;
+            }
+
+            .item-rarity-yellow {
+                background-color: #ffd700;
+            }
+
+            .item-name {
+                font-size: 14px;
+
+                font-weight: 600;
+
+                color: #ffffff;
+
+                white-space: nowrap;
+
+                overflow: hidden;
+
+                text-overflow: ellipsis;
+            }
+
+            .item-finish {
+                font-size: 12px;
+
+                color: #a0a8b1;
+
+                margin-top: 2px;
+            }
+
+            .item-quality {
+                position: absolute;
+
+                top: 0;
+
+                right: 0;
+
+                background-color: #577cf4;
+
+                color: #ffffff;
+
+                padding: 3px 6px;
+
+                font-size: 10px;
+
+                font-weight: bold;
+
+                border-bottom-left-radius: 4px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class="inventory-layout">
+            <div class="inventory-container">
+                <header class="inventory-header">
+                    <div class="header-title">INVENTORY</div>
+
+                    <div class="header-controls">
+                        <div class="dropdown">
+                            <button
+                                onclick="toggleDropdown()"
+                                class="dropdown-button"
+                                id="mainDropdownButton"
+                            >
+                                EVERYTHING <span class="arrow">▼</span>
+                            </button>
+
+                            <div id="filterDropdown" class="dropdown-content">
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'EVERYTHING',
+                                            'EVERYTHING',
+                                            'all',
+                                        )
+                                    "
+                                    >EVERYTHING</a
+                                >
+
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'Зброя',
+                                            '🔫 Зброя',
+                                            'weapon',
+                                        )
+                                    "
+                                    >🔫 Зброя</a
+                                >
+
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'Ножі',
+                                            '🔪 Ножі',
+                                            'knife',
+                                        )
+                                    "
+                                    >🔪 Ножі</a
+                                >
+
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'Рукавички',
+                                            '🧤 Рукавички',
+                                            'glove',
+                                        )
+                                    "
+                                    >🧤 Рукавички</a
+                                >
+
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'Кейси',
+                                            '📦 Кейси',
+                                            'case',
+                                        )
+                                    "
+                                    >📦 Кейси</a
+                                >
+
+                                <a
+                                    href="#"
+                                    onclick="
+                                        selectFilter(
+                                            event,
+                                            'Стікери',
+                                            '✨ Стікери',
+                                            'sticker',
+                                        )
+                                    "
+                                    >✨ Стікери</a
+                                >
+                            </div>
+                        </div>
+
+                        <div class="search-box">
+                            <input
+                                type="text"
+                                id="searchInput"
+                                placeholder="Search Items"
+                                oninput="applyFiltersAndSearch()"
+                            />
+                        </div>
+
+                        <button
+                            class="control-button"
+                            onclick="toggleLoadoutPanel(true)"
+                        >
+                            Loadout
+                        </button>
+                    </div>
+                </header>
+
+                <div class="filter-bar">
+                    <span class="filter-active" id="activeFilterDisplay"
+                        >EVERYTHING</span
+                    >
+                </div>
+
+                <div class="inventory-grid" id="inventoryGrid">
+                    <div
+                        class="item-card item-knife"
+                        data-type="knife"
+                        data-name="Talon Knife"
+                        data-finish="Tiger Tooth"
+                        data-rarity="red"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder">🔪</div>
+
+                        <div class="item-rarity item-rarity-red"></div>
+
+                        <div class="item-name">★ Talon Knife</div>
+
+                        <div class="item-finish">Tiger Tooth</div>
+
+                        <div class="item-quality new-sticker">New!</div>
+                    </div>
+
+                    <div
+                        class="item-card item-weapon"
+                        data-type="weapon"
+                        data-name="AK-47"
+                        data-finish="Fire Serpent"
+                        data-rarity="red"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder">🔫</div>
+
+                        <div class="item-rarity item-rarity-red"></div>
+
+                        <div class="item-name">AK-47</div>
+
+                        <div class="item-finish">Fire Serpent</div>
+                    </div>
+
+                    <div
+                        class="item-card item-weapon"
+                        data-type="weapon"
+                        data-name="AWP"
+                        data-finish="The Prince"
+                        data-rarity="pink"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder">🔫</div>
+
+                        <div class="item-rarity item-rarity-pink"></div>
+
+                        <div class="item-name">AWP</div>
+
+                        <div class="item-finish">The Prince</div>
+
+                        <div class="item-quality new-sticker">New!</div>
+                    </div>
+
+                    <div
+                        class="item-card item-glove"
+                        data-type="glove"
+                        data-name="Hand Wraps"
+                        data-finish="Cobalt Skulls"
+                        data-rarity="red"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder item-glove">🧤</div>
+
+                        <div class="item-rarity item-rarity-red"></div>
+
+                        <div class="item-name">★ Hand Wraps</div>
+
+                        <div class="item-finish">Cobalt Skulls</div>
+                    </div>
+
+                    <div
+                        class="item-card item-glove"
+                        data-type="glove"
+                        data-name="Sport Gloves"
+                        data-finish="Vice"
+                        data-rarity="pink"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder item-glove">🧤</div>
+
+                        <div class="item-rarity item-rarity-pink"></div>
+
+                        <div class="item-name">★ Sport Gloves</div>
+
+                        <div class="item-finish">Vice</div>
+                    </div>
+
+                    <div
+                        class="item-card item-case"
+                        data-type="case"
+                        data-name="Gamma 2 Case"
+                        data-finish="Case"
+                        data-rarity="yellow"
+                        onclick="selectItem(this)"
+                    >
+                        <div class="item-image-placeholder item-case">📦</div>
+
+                        <div class="item-rarity item-rarity-yellow"></div>
+
+                        <div class="item-name">Gamma 2 Case</div>
+
+                        <div class="item-finish">Case</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loadout-panel" id="loadoutPanel">
+                <div class="loadout-header">
+                    LOADOUT
+
+                    <span
+                        class="loadout-close"
+                        onclick="toggleLoadoutPanel(false)"
+                        >&times;</span
+                    >
+                </div>
+
+                <div class="loadout-slot-group">
+                    <div class="loadout-slot-title">🔪 KNIFE</div>
+
+                    <div
+                        class="loadout-slot"
+                        id="slot-knife"
+                        data-slot-type="knife"
+                        onclick="selectLoadoutSlot(this)"
+                    >
+                        <span class="slot-placeholder">Select a Knife</span>
+                    </div>
+                </div>
+
+                <div class="loadout-slot-group">
+                    <div class="loadout-slot-title">
+                        🔫 PRIMARY WEAPON (AK/M4)
+                    </div>
+
+                    <div
+                        class="loadout-slot"
+                        id="slot-weapon-primary"
+                        data-slot-type="weapon"
+                        onclick="selectLoadoutSlot(this)"
+                    >
+                        <span class="slot-placeholder"
+                            >Select Primary Weapon</span
+                        >
+                    </div>
+                </div>
+
+                <div class="loadout-slot-group">
+                    <div class="loadout-slot-title">🧤 GLOVES</div>
+
+                    <div
+                        class="loadout-slot"
+                        id="slot-glove"
+                        data-slot-type="glove"
+                        onclick="selectLoadoutSlot(this)"
+                    >
+                        <span class="slot-placeholder">Select Gloves</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            let currentFilterCategory = "all";
+
+            let selectedItem = null; // Зберігає картку інвентарю, вибрану для Loadout
+
+            let activeLoadoutSlot = null; // Зберігає слот Loadout, вибраний для заповнення
+
+            /* --- ФУНКЦІОНАЛ LOADOUT --- */
+
+            // Відкриває/Закриває панель спорядження
+
+            function toggleLoadoutPanel(shouldOpen) {
+                const panel = document.getElementById("loadoutPanel");
+
+                if (shouldOpen) {
+                    panel.classList.add("open");
+                } else {
+                    panel.classList.remove("open");
+
+                    clearSelection(); // Очищаємо всі виділення при закритті
+                }
+            }
+
+            // Вибирає картку в інвентарі
+
+            function selectItem(card) {
+                // Очищаємо попереднє виділення в інвентарі
+
+                const currentSelected = document.querySelector(
+                    ".item-card.selected-for-loadout",
+                );
+
+                if (currentSelected) {
+                    currentSelected.classList.remove("selected-for-loadout");
+                }
+
+                // Встановлюємо нове виділення
+
+                card.classList.add("selected-for-loadout");
+
+                selectedItem = card;
+
+                // Перевіряємо, чи є активний слот
+
+                if (activeLoadoutSlot) {
+                    // Якщо вибраний слот і предмет співпадають за типом, одразу встановлюємо його
+
+                    const slotType =
+                        activeLoadoutSlot.getAttribute("data-slot-type");
+
+                    const itemType = selectedItem.getAttribute("data-type");
+
+                    if (slotType === itemType) {
+                        fillLoadoutSlot(activeLoadoutSlot, selectedItem);
+
+                        clearSelection();
+                    } else {
+                        alert(
+                            `Цей предмет (${itemType}) не підходить для слота "${slotType}". Спочатку виберіть слот.`,
+                        );
+                    }
+                }
+            }
+
+            // Вибирає слот у панелі спорядження
+
+            function selectLoadoutSlot(slot) {
+                // Очищаємо попереднє виділення слота
+
+                const currentActiveSlot = document.querySelector(
+                    ".loadout-slot.selected-for-loadout",
+                );
+
+                if (currentActiveSlot) {
+                    currentActiveSlot.classList.remove("selected-for-loadout");
+                }
+
+                // Виділяємо новий слот
+
+                slot.classList.add("selected-for-loadout");
+
+                activeLoadoutSlot = slot;
+
+                // Якщо є вибраний предмет, одразу намагаємося заповнити слот
+
+                if (selectedItem) {
+                    const slotType =
+                        activeLoadoutSlot.getAttribute("data-slot-type");
+
+                    const itemType = selectedItem.getAttribute("data-type");
+
+                    if (slotType === itemType) {
+                        fillLoadoutSlot(activeLoadoutSlot, selectedItem);
+
+                        clearSelection();
+                    } else {
+                        alert(
+                            `Ви вибрали ${itemType}. Виберіть слот, який йому відповідає.`,
+                        );
+                    }
+                }
+            }
+
+            // Заповнює HTML слота даними предмета
+
+            function fillLoadoutSlot(slot, itemCard) {
+                const name = itemCard.getAttribute("data-name");
+
+                const finish = itemCard.getAttribute("data-finish");
+
+                const rarity = itemCard.getAttribute("data-rarity");
+
+                const emoji = itemCard.querySelector(
+                    ".item-image-placeholder",
+                ).innerText;
+
+                // Очищаємо попередній вміст
+
+                slot.innerHTML = "";
+
+                slot.classList.remove("slot-rarity-red", "slot-rarity-pink");
+
+                // Додаємо нову рідкість
+
+                if (rarity === "red") slot.classList.add("slot-rarity-red");
+
+                if (rarity === "pink") slot.classList.add("slot-rarity-pink");
+
+                // Встановлюємо вміст
+
+                slot.innerHTML = `
+
+            <div style="font-size: 30px; margin-right: 5px;">${emoji}</div>
+
+            <div class="slot-item-info">
+
+                <div class="slot-item-name">${name}</div>
+
+                <div class="slot-item-finish">${finish}</div>
+
+            </div>
+
+        `;
+
+                // Додаємо можливість очистити слот
+
+                slot.onclick = () => clearLoadoutSlot(slot);
+            }
+
+            // Очищає слот спорядження
+
+            function clearLoadoutSlot(slot) {
+                slot.innerHTML = `<span class="slot-placeholder">Select a ${slot.getAttribute("data-slot-type")}</span>`;
+
+                slot.classList.remove(
+                    "slot-rarity-red",
+                    "slot-rarity-pink",
+                    "selected-for-loadout",
+                );
+
+                slot.onclick = () => selectLoadoutSlot(slot); // Повертаємо функцію вибору
+
+                activeLoadoutSlot = null;
+            }
+
+            // Очищає всі виділення
+
+            function clearSelection() {
+                const currentSelected = document.querySelector(
+                    ".item-card.selected-for-loadout",
+                );
+
+                if (currentSelected) {
+                    currentSelected.classList.remove("selected-for-loadout");
+                }
+
+                const currentActiveSlot = document.querySelector(
+                    ".loadout-slot.selected-for-loadout",
+                );
+
+                if (currentActiveSlot) {
+                    currentActiveSlot.classList.remove("selected-for-loadout");
+                }
+
+                selectedItem = null;
+
+                activeLoadoutSlot = null;
+            }
+
+            /* --- ФУНКЦІОНАЛ ФІЛЬТРАЦІЇ ТА ПОШУКУ (з попереднього кроку) --- */
+
+            function toggleDropdown() {
+                document
+                    .getElementById("filterDropdown")
+                    .classList.toggle("show");
+            }
+
+            window.onclick = function (event) {
+                if (!event.target.matches(".dropdown-button")) {
+                    var dropdowns =
+                        document.getElementsByClassName("dropdown-content");
+
+                    for (var i = 0; i < dropdowns.length; i++) {
+                        var openDropdown = dropdowns[i];
+
+                        if (openDropdown.classList.contains("show")) {
+                            openDropdown.classList.remove("show");
+                        }
+                    }
+                }
+            };
+
+            function selectFilter(
+                event,
+                filterDisplayName,
+                buttonText,
+                filterCategory,
+            ) {
+                event.preventDefault();
+
+                currentFilterCategory = filterCategory;
+
+                document.getElementById("mainDropdownButton").innerHTML =
+                    buttonText + ' <span class="arrow">▼</span>';
+
+                document.getElementById("activeFilterDisplay").innerText =
+                    filterDisplayName;
+
+                document
+                    .getElementById("filterDropdown")
+                    .classList.remove("show");
+
+                applyFiltersAndSearch();
+            }
+
+            function applyFiltersAndSearch() {
+                const searchValue = document
+                    .getElementById("searchInput")
+                    .value.toLowerCase();
+
+                const cards = document.querySelectorAll(".item-card");
+
+                cards.forEach((card) => {
+                    const categoryClass = `item-${currentFilterCategory}`;
+
+                    const isCategoryMatch =
+                        currentFilterCategory === "all" ||
+                        card.classList.contains(categoryClass);
+
+                    const name = card.getAttribute("data-name").toLowerCase();
+
+                    const finish = card
+                        .getAttribute("data-finish")
+                        .toLowerCase();
+
+                    const isSearchMatch =
+                        name.includes(searchValue) ||
+                        finish.includes(searchValue);
+
+                    if (isCategoryMatch && isSearchMatch) {
+                        card.classList.remove("hidden");
+                    } else {
+                        card.classList.add("hidden");
+                    }
+                });
+            }
+
+            document.addEventListener("DOMContentLoaded", () => {
+                applyFiltersAndSearch();
+            });
+        </script>
+    </body>
+</html>
